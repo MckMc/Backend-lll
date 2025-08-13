@@ -66,6 +66,11 @@ router.post('/login', async (req,res) => {
   const ok = bcrypt.compareSync(password, user.password);
   if (!ok) return res.status(401).json({ error:'Invalid credentials' });
 
+  await UserModel.updateOne(
+    { _id: user._id },
+    { $set: { last_connection: new Date() } }
+  );
+
   const token = signJWT(user._id);
   res.cookie('jwt', token, { httpOnly:true, sameSite:'lax' });
   res.json({ status:'ok', user: { id:user._id, email:user.email, role:user.role }});
@@ -77,10 +82,19 @@ router.get('/current', passport.authenticate('current', { session:false }), (req
 });
 
 // LOGOUT
-router.post('/logout', (req,res) => {
-  res.clearCookie('jwt');
-  res.json({ status:'ok' });
-});
+router.post('/logout',
+  passport.authenticate('current', { session:false }),
+  async (req,res) => {
+    // 👇 NUEVO: registrar última conexión
+    await UserModel.updateOne(
+      { _id: req.user._id },
+      { $set: { last_connection: new Date() } }
+    );
+
+    res.clearCookie('jwt');
+    res.json({ status:'ok' });
+  }
+);
 
 //RESET PASSWORD
 router.post('/password/request', async (req, res) => {

@@ -1,0 +1,120 @@
+openapi: 3.0.0
+info:
+  title: Ecommerce / Adoptme API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: Sessions
+  - name: Pets
+  - name: Adoptions
+
+components:
+  schemas:
+    UserDTO:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { type: string }
+        cartId: { type: string, nullable: true }
+    LoginBody:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    RegisterBody:
+      type: object
+      required: [first_name, last_name, email, password]
+      properties:
+        first_name: { type: string }
+        last_name: { type: string }
+        email: { type: string, format: email }
+        age: { type: integer }
+        password: { type: string, format: password }
+    Pet:
+      type: object
+      properties:
+        _id: { type: string }
+        name: { type: string }
+        species: { type: string }
+        birthDate: { type: string, format: date-time }
+        adopted: { type: boolean }
+        owner: { type: string, nullable: true }
+    Adoption:
+      type: object
+      properties:
+        petId: { type: string }
+        ownerId: { type: string }
+        adoptedAt: { type: string, format: date-time }
+
+paths:
+  /api/sessions/register:
+    post:
+      tags: [Sessions]
+      summary: Registrar usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterBody' }
+      responses:
+        "201": { description: OK }
+  /api/sessions/login:
+    post:
+      tags: [Sessions]
+      summary: Login (setea cookie jwt)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginBody' }
+      responses:
+        "200": { description: OK }
+  /api/sessions/current:
+    get:
+      tags: [Sessions]
+      summary: Usuario actual (DTO)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserDTO' }
+
+  /api/pets:
+    get:
+      tags: [Pets]
+      summary: Listar mascotas
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Pet' }
+
+  /api/adoptions/{pid}:
+    post:
+      tags: [Adoptions]
+      summary: Adoptar una mascota (el usuario logueado la adopta)
+      parameters:
+        - in: path
+          name: pid
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Adoption creada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Adoption' }
+        "400": { description: Mascota ya adoptada }
+        "404": { description: Mascota no encontrada }
